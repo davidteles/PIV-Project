@@ -71,35 +71,181 @@ xyz21=xyz2*tr.T+ones(length(xyz2),1)*tr.c(1,:);
 %% 
 %SHOW ALL CLOUDS FUSING
 d=dir(strcat(imagefolder,'rgb_image1_*'));
+
+%Go throw all the images
 for i=1:length(d),
+    clear objects1x;
+    clear objects1y;
+    clear objects1z;
+    clear objects2x;
+    clear objects2y;
+    clear objects2z;
+    clear lb1;
+    clear uv1;
+    clear lb2;
+    clear uv2;
+    clear objectspointcloud;
+    
+    
+    %Load RGB image
     im1=imread([imagefolder 'rgb_image1_' d(i).name(12:end-3) 'png']);
     im2=imread([imagefolder 'rgb_image2_' d(i).name(12:end-3) 'png']);
     
-    load([imagefolder 'depth1_' d(i).name(12:end-3) 'mat'])
+    %Load depth images
+    load([imagefolder 'depth1_' d(i).name(12:end-3) 'mat']);
     dep1=depth_array;
-    backremoved1=double(dep1)-background1;
     
-    
-    
-    dep1=backremoved1;
-    load([imagefolder 'depth2_' d(i).name(12:end-3) 'mat'])
+    load([imagefolder 'depth2_' d(i).name(12:end-3) 'mat']);
     dep2=depth_array;
-    backremoved2=double(dep2)-background2;
+    
+    
+    %Morphollogical filtering on binary mask
+    backremoved1=abs(double(dep1)-background1)>300;
+    backremoved1=imopen(backremoved1,strel('disk',5));
+    backremoved1=imopen(backremoved1,strel('disk',10));
+    backremoved1=imdilate(backremoved1,strel('disk',25));
+    backremoved1=imerode(backremoved1,strel('disk',26));
+    %backremoved1=imclose(backremoved1,strel('disk',25));
+    backremoved1=imopen(backremoved1,strel('disk',10)); 
+
+    backremoved2=abs(double(dep2)-background2)>300;
+    backremoved2=imopen(backremoved2,strel('disk',5));
+    backremoved2=imopen(backremoved2,strel('disk',10));
+    backremoved2=imdilate(backremoved2,strel('disk',25));
+    backremoved2=imerode(backremoved2,strel('disk',26));
+    %backremoved2=imclose(backremoved2,strel('disk',25));
+    backremoved2=imopen(backremoved2,strel('disk',10));
+    
+    %Apply labels to all the areas
+    lb1=bwlabel(backremoved1);
+    lb2=bwlabel(backremoved2);
+    
+    uv1 = unique(lb1);
+    uv2 = unique(lb2);
     
     
     
-    dep2=backremoved2;
-    xyz1=get_xyzasus(dep1(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
-    xyz2=get_xyzasus(dep2(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
-    rgbd1 = get_rgbd(xyz1, im1, cam_params.R, cam_params.T, cam_params.Krgb);
-    rgbd2 = get_rgbd(xyz2, im2, cam_params.R, cam_params.T, cam_params.Krgb);
+    numberofobjects=0;
+    
+    %Creat Point clouds for objects detected by camera 1
+    for lb=1:size(uv1,1)
+        
+        
+        %Calculate mask per object
+        mask=abs(backremoved1)==lb;
+        
+        %Apply Mask
+        dep1=times(double(dep1),double(mask));
+        
+        %Get transformation from Depth to RGB
+        xyz1=get_xyzasus(dep1(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
+        
+        %Cut and reshape RGB image using depth
+        rgbd1 = get_rgbd(xyz1, im1, cam_params.R, cam_params.T, cam_params.Krgb);
+    
+        %
+        figure(1);hold off;
+        
+        %Calculate Point Cloud
+        pc1=pointCloud(xyz1,'Color',reshape(rgbd1,[480*640 3]));
+        
+        if exist('objectspointcloud')==0
+            objectspointcloud=pc1;
+        else
+            
+            objectspointcloud=pcmerge(objectspointcloud,pc1,0.001);
+        end
+        
+        
+        %Load x,y,z limits
+        objects1x(:,lb)=pc1.XLimits;
+        objects1y(:,lb)=pc1.YLimits;
+        objects1z(:,lb)=pc1.ZLimits;
+        %showPointCloud(pc1)
+        
+        %Display Cut RGB images   
+        imagesc(rgbd1);
+        
+        %pause;
+        drawnow;
+        
+    end
     
     
-    pc1=pointCloud(xyz1,'Color',reshape(rgbd1,[480*640 3]));
-    pc2=pointCloud(xyz2*tr.T+ones(length(xyz2),1)*tr.c(1,:),'Color',reshape(rgbd2,[480*640 3]));
+     %Creat Point clouds for objects detected by camera 2
+    for lb=1:size(uv2,1)
+   
+        
+        %Increment the number o objects detected
+        numberofobjects=numberofobjects+1;
+        
+        %Calculate mask per object
+        mask=abs(backremoved2)==lb;
+        
+        %Apply Mask
+        dep2=times(double(dep2),double(mask));
+        
+        %Get transformation from Depth to RGB
+        xyz2=get_xyzasus(dep2(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
+        
+        %Cut and reshape RGB image using depth
+        rgbd2 = get_rgbd(xyz2, im2, cam_params.R, cam_params.T, cam_params.Krgb);
+        
+        %
+        figure(2);hold off;
+        
+        %Calculate Point Cloud
+        pc2=pointCloud(xyz2*tr.T+ones(length(xyz2),1)*tr.c(1,:),'Color',reshape(rgbd2,[480*640 3]));
+        
+        if exist('objectspointcloud')==0
+            objectspointcloud=pc2;
+            
+        else
+            objectspointcloud=pcmerge(objectspointcloud,pc2,0.001);
+        end
+        
+        %Load x,y,z limits
+        objects2x(:,lb)=pc2.XLimits;
+        objects2y(:,lb)=pc2.YLimits;
+        objects2z(:,lb)=pc2.ZLimits;
+        
+        %showPointCloud(pc2)
+        
+        %Display Cut RGB images
+        imagesc(rgbd2);
+        
+        %pause;
+        drawnow;
+    end
     
-    figure(1);hold off;
-    showPointCloud(pc1)
-    pcshow(pcmerge(pc1,pc2,0.001));
-    drawnow;
+    
+    
+    
+    
+    
+            
+            
+            
+            figure(3);hold off;
+            showPointCloud(objectspointcloud);
+            %pcshow(pcmerge(pc1,pc2,0.001));
+            drawnow;
+       
+    
+    
+    
+    
+    
+    
+    %Display Cut RGB images
+    %figure(1);hold off;
+    %imagesc(rgbd1);
+    %figure(2);hold off;
+    %imagesc(rgbd2);
+    
+    
+    
+    
+    
+
 end
