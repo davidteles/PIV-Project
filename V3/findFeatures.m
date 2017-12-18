@@ -11,10 +11,10 @@ while length(matches)<4
     [matches, score] = vl_ubcmatch (da, db, thresh);
 end
 
-xa = fa(1,matches(1,:)) 
-xb = fb(1,matches(2,:))
-ya = fa(2,matches(1,:)) 
-yb = fb(2,matches(2,:)) 
+xa = fa(1,matches(1,:));
+xb = fb(1,matches(2,:));
+ya = fa(2,matches(1,:));
+yb = fb(2,matches(2,:));
 
 
 if shouldPlot

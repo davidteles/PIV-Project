@@ -1,4 +1,4 @@
-function [best xxx transform] = ransac1(x,y)
+function [error xxx transform] = ransac1(x,y)
 %[f inlierIdx] = ransac1( x,y,ransacCoef,funcFindF,funcDist )
 %	Use RANdom SAmple Consensus to find a fit from X to Y.
 %	X is M*n matrix including n points with dim M, Y is N*n;
@@ -25,14 +25,14 @@ function [best xxx transform] = ransac1(x,y)
 
 minPtNum = 4;
 iterNum = 300;
-thInlrRatio = 0.025;
-thDist = 0.02;
+thInlrRatio = 0.5;
+thDist = 2;
 ptNum = size(x,1);
-thInlr = round(0.5*ptNum);
+thInlr = round(thInlrRatio*ptNum);
 
 inlrNum = zeros(1,iterNum);
 
-best=1000;
+best=0;
 
 for p = 1:iterNum
     
@@ -44,18 +44,18 @@ for p = 1:iterNum
 	
 	% 2. count the inliers, if more than thInlr, refit; else iterate
 	dist = calculateerror(tr,x,y);
-    sse=norm(dist,2);
+    %sse=norm(dist,2);
 	inlier1 = find(dist < thDist);
 	inlrNum(p) = length(inlier1);
     
-    if sse<best
-        
-        best=sse;
+    if best<length(inlier1) && length(inlier1)>thInlr
+        best=length(inlier1);
+        error=d;
         xxx=xx;
         transform=tr;
         
     end
- 
+    
 end
 
 end
