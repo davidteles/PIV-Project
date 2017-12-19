@@ -24,16 +24,17 @@ function [error xxx transform] = ransac1(x,y)
 
 
 minPtNum = 4;
-iterNum = 300;
-thInlrRatio = 0.5;
-thDist = 2;
+iterNum = 500;
+thInlrRatio = 0.4;
+thDist = 0.015;
 ptNum = size(x,1);
 thInlr = round(thInlrRatio*ptNum);
 
 inlrNum = zeros(1,iterNum);
-
+error=100;
 best=0;
-
+bestinliers=[];
+    
 for p = 1:iterNum
     
 	% 1. fit using  random points
@@ -41,6 +42,9 @@ for p = 1:iterNum
     x(sampleIdx,:);
     y(sampleIdx,:);
 	[d xx tr] = procrustes(x(sampleIdx,:),y(sampleIdx,:),'scaling',false,'reflection',false);
+    
+    
+    
 	
 	% 2. count the inliers, if more than thInlr, refit; else iterate
 	dist = calculateerror(tr,x,y);
@@ -48,14 +52,21 @@ for p = 1:iterNum
 	inlier1 = find(dist < thDist);
 	inlrNum(p) = length(inlier1);
     
+    
     if best<length(inlier1) && length(inlier1)>thInlr
         best=length(inlier1);
         error=d;
         xxx=xx;
         transform=tr;
+        clear bestinliers;
+        bestinliers=inlier1;
         
     end
-    
+
+     [d xx tr] = procrustes(x(bestinliers,:),y(bestinliers,:),'scaling',false,'reflection',false);
+     error=d;
+     xxx=xx;
+     transform=tr;
 end
 
 end

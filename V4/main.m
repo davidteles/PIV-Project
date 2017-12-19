@@ -54,6 +54,7 @@ if(mode==1)
     P1=P1(inds,:);P2=P2(inds,:);
 
     [d,xx,tr]=ransac1(P1,P2)
+    %[d,xx,tr]=procrustes(P1,P2,'scaling',false,'reflection',false);
 elseif(mode==2)
     
     [xa,ya,xb,yb]=chosePoints(xyz1,xyz2)
@@ -64,7 +65,8 @@ elseif(mode==2)
     P2=xyz2(ind2,:);
     inds=find((P1(:,3).*P2(:,3))>0);
     P1=P1(inds,:);P2=P2(inds,:);
-    [d,xx,tr]=procrustes(P1,P2,'scaling',false,'reflection',false);
+    
+    [d,xx,tr]=procrustes(P1,P2,'scaling',false,'reflection',false)
 else
     
     tr=transformation;
@@ -121,6 +123,16 @@ for i=1:length(d)
     uv1 = unique(lb1);
     uv2 = unique(lb2);
     
+    %Get transformation from Depth to RGB
+    xyz1=get_xyzasus(dep1(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
+    xyz2=get_xyzasus(dep2(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);    
+    
+    %Cut and reshape RGB image using depth
+    rgbd1 = get_rgbd(xyz1, im1, cam_params.R, cam_params.T, cam_params.Krgb);
+    rgbd2 = get_rgbd(xyz2, im2, cam_params.R, cam_params.T, cam_params.Krgb);
+    %Calculate Point Cloud
+    pctotal1=pointCloud(xyz1,'Color',reshape(rgbd1,[480*640 3]));
+    pctotal2=pointCloud(xyz2*tr.T+ones(length(xyz2),1)*tr.c(1,:),'Color',reshape(rgbd2,[480*640 3]));
     
     numberofobjects=0;
     
@@ -220,23 +232,26 @@ for i=1:length(d)
         
         %pause;
         %drawnow;
+        
     end
     
 
-    figure(3);hold on;
+    figure(3);hold off;
     showPointCloud(objectspointcloud);
-    %pcshow(pcmerge(pc1,pc2,0.001));
+    figure(4);hold off;
+    pcshow(pcmerge(pctotal1,pctotal2,0.001));
     drawnow;
-       
+    
+    
     for j=1:size(uv1,1)
         
-        %objects1x(:,1),objects1y(:,1),objects1z(:,1)
+        
         X=[objects1x(1,j),objects1x(2,j),objects1x(2,j),objects1x(1,j),objects1x(1,j)];
         Y=[objects1y(1,j),objects1y(2,j),objects1y(2,j),objects1y(1,j),objects1y(1,j)];
         Z=[objects1z(1,j),objects1z(2,j),objects1z(2,j),objects1z(1,j),objects1z(1,j)];
         plot3(objects1x(:,j),objects1y(:,j),objects1z(:,j));
         %Just to stop the script
-        erro
+        %erro
     end
     
     
