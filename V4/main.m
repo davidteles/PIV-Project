@@ -6,6 +6,13 @@ load('cameraparametersAsus.mat');
 mode=1;
 shouldPlot = true;
 
+huemargin=0.05;
+distancemargin=0.25;
+
+detected=struct('xlimits',{},'ylimits',{},'zlimits',{},'huecam1',{},'huecam2',{});
+
+
+
 % READ IMAGES and GENERATE POINT CLOUDS
 imagefolder='/Volumes/Samsung_T5/PIV/Projecto/data_rgb 3/';
 [imgbrgb,imgbdepth]=calculatebackground(imagefolder);
@@ -165,7 +172,7 @@ for i=1:length(d)
         %imagesc(temphsv);
         hue=temphsv(:,:,1);
         hue=hue(hue~=0);
-        objects1h(lb)=median(hue(:))
+        objects1h(lb)=median(hue(:));
         
         %pause;
         
@@ -231,7 +238,7 @@ for i=1:length(d)
         %imagesc(temphsv);
         hue=temphsv(:,:,1);
         hue=hue(hue~=0);
-        objects2h(lb)=median(hue(:))
+        objects2h(lb)=median(hue(:));
         
         
         
@@ -282,28 +289,88 @@ for i=1:length(d)
     
     
     for j=1:size(uv1,1)-1
-        
-        
-        X=[objects1x(1,j),objects1x(2,j),objects1x(2,j),objects1x(1,j),objects1x(1,j)];
-        Y=[objects1y(1,j),objects1y(2,j),objects1y(2,j),objects1y(1,j),objects1y(1,j)];
-        Z=[objects1z(1,j),objects1z(2,j),objects1z(2,j),objects1z(1,j),objects1z(1,j)];
-        
+        flag=0;
+        %check if it corresponds to any of the old objects
+        for counter=1:size(detected,2)
+
+            %check if the regions intecept
+            if range_intersection(detected(counter).xlimits,objects1x(:,j),distancemargin)==1 && range_intersection(detected(counter).ylimits,objects1y(:,j),distancemargin)==1 && range_intersection(detected(counter).zlimits,objects1z(:,j),distancemargin)==1
+                
+                disp('range');
+                if ((detected(counter).huecam1-huemargin<objects1h(:,j) && detected(counter).huecam1+huemargin>objects1h(:,j)) || detected(counter).huecam1==0)
+                    disp('color')
+                    flag=1;
+                    break;
+                end
+
+            else
+                flag=0;
+                
+            end
+        end
+        %No match found so add new object
+        if flag==1
+            detected(counter).xlimits=objects1x(:,j);
+            detected(counter).ylimits=objects1y(:,j);
+            detected(counter).zlimits=objects1z(:,j);
+            detected(counter).huecam1=objects1h(:,j);
+            
+        elseif flag==0
+            numberofobjects=numberofobjects+1;
+            detected(numberofobjects).xlimits=objects1x(:,j);
+            detected(numberofobjects).ylimits=objects1y(:,j);
+            detected(numberofobjects).zlimits=objects1z(:,j);
+            detected(numberofobjects).huecam1=objects1h(:,j);
+            detected(numberofobjects).huecam2=0;
+        end
         %Just to stop the script
         %erro
     end
     
-        for j=1:size(uv2,1)-1
+    for j=1:size(uv2,1)-1
+        flag=0;
+        %check if it corresponds to any of the old objects
+        for counter=1:size(detected,2)
+            %check if the regions intecept
+            if range_intersection(detected(counter).xlimits,objects2x(:,j),distancemargin)==1 && range_intersection(detected(counter).ylimits,objects2y(:,j),distancemargin)==1 && range_intersection(detected(counter).zlimits,objects2z(:,j),distancemargin)==1
+                disp('range');
+                if ((detected(counter).huecam2-huemargin<objects2h(:,j) && detected(counter).huecam2+huemargin>objects2h(:,j)) || detected(counter).huecam2==0)
+                    disp('color')
+                    flag=1;
+                    break;
+                end
+
+            else
+                flag=0;
+                
+            end
+        end
+        %No match found so add new object
+        if flag==1
+            detected(counter).xlimits(1)=min(objects2x(1,j),detected(counter).xlimits(1));
+            detected(counter).xlimits(2)=max(objects2x(2,j),detected(counter).xlimits(2));
+            detected(counter).ylimits(1)=min(objects2y(1,j),detected(counter).ylimits(1));
+            detected(counter).ylimits(2)=max(objects2y(2,j),detected(counter).ylimits(2));
+            detected(counter).zlimits(1)=min(objects2z(1,j),detected(counter).zlimits(1));
+            detected(counter).zlimits(2)=max(objects2z(2,j),detected(counter).zlimits(2));
+            detected(counter).huecam2=objects2h(:,j);
+            
+        elseif flag==0
+            numberofobjects=numberofobjects+1;
+            detected(numberofobjects).xlimits=objects2x(:,j);
+            detected(numberofobjects).ylimits=objects2y(:,j);
+            detected(numberofobjects).zlimits=objects2z(:,j);
+            detected(numberofobjects).huecam1=0;
+            detected(numberofobjects).huecam2=objects2h(:,j);
+        end
         
         
-        X=[objects2x(1,j),objects2x(2,j),objects2x(2,j),objects2x(1,j),objects2x(1,j)];
-        Y=[objects2y(1,j),objects2y(2,j),objects2y(2,j),objects2y(1,j),objects2y(1,j)];
-        Z=[objects2z(1,j),objects2z(2,j),objects2z(2,j),objects2z(1,j),objects2z(1,j)];
-        
-        %Just to stop the script
-        %erro
     end
     
-    
+    for counter=1:size(detected,2)
+        %Insert code to draw the boxes one per object
+        
+    end
     
     %Display Cut RGB images
     %figure(1);hold off;
