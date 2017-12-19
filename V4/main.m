@@ -16,7 +16,6 @@ im2=imgbrgb(:,:,2);
 background1=imgbdepth(:,:,1);
 background2=imgbdepth(:,:,2);
 
-%dep2(find(dep2(:)>4000))=0;
 
 xyz1=get_xyzasus(dep1(:),[480 640],(1:480*640)',cam_params.Kdepth,1,0);
 xyz2=get_xyzasus(dep2(:),[480 640],(1:480*640)',cam_params.Kdepth,1,0);
@@ -224,12 +223,21 @@ for i=1:length(d)
     end
     
 
-    figure(3);hold off;
+    figure(3);hold on;
     showPointCloud(objectspointcloud);
     %pcshow(pcmerge(pc1,pc2,0.001));
     drawnow;
        
-    
+    for j=1:size(uv1,1)
+        
+        %objects1x(:,1),objects1y(:,1),objects1z(:,1)
+        X=[objects1x(1,j),objects1x(2,j),objects1x(2,j),objects1x(1,j),objects1x(1,j)];
+        Y=[objects1y(1,j),objects1y(2,j),objects1y(2,j),objects1y(1,j),objects1y(1,j)];
+        Z=[objects1z(1,j),objects1z(2,j),objects1z(2,j),objects1z(1,j),objects1z(1,j)];
+        plot3(objects1x(:,j),objects1y(:,j),objects1z(:,j));
+        %Just to stop the script
+        erro
+    end
     
     
     
