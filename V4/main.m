@@ -53,11 +53,11 @@ if(mode==1)
 
     P1=P1(inds,:);P2=P2(inds,:);
 
-    [d,xx,tr]=ransac1(P1,P2)
+    [d,xx,tr]=ransac1(P1,P2);
     %[d,xx,tr]=procrustes(P1,P2,'scaling',false,'reflection',false);
 elseif(mode==2)
     
-    [xa,ya,xb,yb]=chosePoints(xyz1,xyz2)
+    [xa,ya,xb,yb]=chosePoints(xyz1,xyz2);
     ind1=sub2ind(size(dep2),ya,xa);
     ind2=sub2ind(size(dep2),yb,xb);
     %%
@@ -66,7 +66,7 @@ elseif(mode==2)
     inds=find((P1(:,3).*P2(:,3))>0);
     P1=P1(inds,:);P2=P2(inds,:);
     
-    [d,xx,tr]=procrustes(P1,P2,'scaling',false,'reflection',false)
+    [d,xx,tr]=procrustes(P1,P2,'scaling',false,'reflection',false);
 else
     
     tr=transformation;
@@ -83,7 +83,7 @@ d=dir([imagefolder 'rgb_image1_*']);
 
 for i=1:length(d)
     %Go throw all the images
-    clear( 'objects1x', 'objects1y', 'objects1z', 'objects2x', 'objects2y', 'objects2z');
+    clear( 'objects1x', 'objects1y', 'objects1z','objects1h', 'objects2x', 'objects2y', 'objects2z','objects2h');
     clear( 'lb1', 'uv1', 'lb2', 'uv2', 'objectspointcloud');
     
     %Load RGB image
@@ -136,21 +136,40 @@ for i=1:length(d)
     
     numberofobjects=0;
     
+   
     %Create Point clouds for objects detected by camera 1
-    for lb=1:size(uv1,1)
+    for lb=1:size(uv1,1)-1
             
         %Calculate mask per object
-        mask=abs(backremoved1)==lb;
+        mask=(abs(lb1)==lb);
         
         %Apply Mask
-        dep1=times(double(dep1),double(mask));
+        deptemp=times(double(dep1),double(mask));
         
         %Get transformation from Depth to RGB
-        xyz1=get_xyzasus(dep1(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
+        xyz1=get_xyzasus(deptemp(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
         
         %Cut and reshape RGB image using depth
         rgbd1 = get_rgbd(xyz1, im1, cam_params.R, cam_params.T, cam_params.Krgb);
     
+        
+        %Get hsv of rgb
+        temprgb(:,:,1)=rgbd1(:,:,1);
+        temprgb(:,:,2)=rgbd1(:,:,2);
+        temprgb(:,:,3)=rgbd1(:,:,3);
+        %figure(1);hold off;
+        %imagesc(temprgb);
+        temphsv=rgb2hsv(temprgb);
+        %figure(2);hold off;
+        %imagesc(temphsv);
+        hue=temphsv(:,:,1);
+        hue=hue(hue~=0);
+        objects1h(lb)=median(hue(:))
+        
+        %pause;
+        
+        
+        
         %
         %figure(1);hold off;
         
@@ -185,21 +204,37 @@ for i=1:length(d)
     
     
     %Creat Point clouds for objects detected by camera 2
-    for lb=1:size(uv2,1)
+    for lb=1:size(uv2,1)-1
         %Increment the number o objects detected
         numberofobjects=numberofobjects+1;
         
         %Calculate mask per object
-        mask=abs(backremoved2)==lb;
+        mask=(abs(lb2)==lb);
         
         %Apply Mask
-        dep2=times(double(dep2),double(mask));
+        deptemp=times(double(dep2),double(mask));
         
         %Get transformation from Depth to RGB
-        xyz2=get_xyzasus(dep2(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
+        xyz2=get_xyzasus(deptemp(:),[480 640],(1:640*480)', cam_params.Kdepth,1,0);
         
         %Cut and reshape RGB image using depth
         rgbd2 = get_rgbd(xyz2, im2, cam_params.R, cam_params.T, cam_params.Krgb);
+        
+        %Get hsv of rgb
+        temprgb(:,:,1)=rgbd2(:,:,1);
+        temprgb(:,:,2)=rgbd2(:,:,2);
+        temprgb(:,:,3)=rgbd2(:,:,3);
+        %figure(1);hold off;
+        %imagesc(temprgb);
+        temphsv=rgb2hsv(temprgb);
+        %figure(2);hold off;
+        %imagesc(temphsv);
+        hue=temphsv(:,:,1);
+        hue=hue(hue~=0);
+        objects2h(lb)=median(hue(:))
+        
+        
+        
         
         %
         %figure(2);hold off;
@@ -235,26 +270,38 @@ for i=1:length(d)
         
     end
     
-
-    figure(3);hold off;
-    showPointCloud(objectspointcloud);
+    if exist('objectspointcloud')~=0
+            figure(3);hold off;
+            showPointCloud(objectspointcloud);
+            
+    end
+    
     figure(4);hold off;
     pcshow(pcmerge(pctotal1,pctotal2,0.001));
     drawnow;
     
     
-    for j=1:size(uv1,1)
+    for j=1:size(uv1,1)-1
         
         
         X=[objects1x(1,j),objects1x(2,j),objects1x(2,j),objects1x(1,j),objects1x(1,j)];
         Y=[objects1y(1,j),objects1y(2,j),objects1y(2,j),objects1y(1,j),objects1y(1,j)];
         Z=[objects1z(1,j),objects1z(2,j),objects1z(2,j),objects1z(1,j),objects1z(1,j)];
-        plot3(objects1x(:,j),objects1y(:,j),objects1z(:,j));
+        
         %Just to stop the script
         %erro
     end
     
-    
+        for j=1:size(uv2,1)-1
+        
+        
+        X=[objects2x(1,j),objects2x(2,j),objects2x(2,j),objects2x(1,j),objects2x(1,j)];
+        Y=[objects2y(1,j),objects2y(2,j),objects2y(2,j),objects2y(1,j),objects2y(1,j)];
+        Z=[objects2z(1,j),objects2z(2,j),objects2z(2,j),objects2z(1,j),objects2z(1,j)];
+        
+        %Just to stop the script
+        %erro
+    end
     
     
     
