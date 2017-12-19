@@ -79,6 +79,7 @@ xyz21=xyz2*tr.T+ones(length(xyz2),1)*tr.c(1,:);
 
 %% SHOW ALL CLOUDS FUSING
 d=dir([imagefolder 'rgb_image1_*']);
+numberofobjects=0;
 
 
 for i=1:length(d)
@@ -134,7 +135,7 @@ for i=1:length(d)
     pctotal1=pointCloud(xyz1,'Color',reshape(rgbd1,[480*640 3]));
     pctotal2=pointCloud(xyz2*tr.T+ones(length(xyz2),1)*tr.c(1,:),'Color',reshape(rgbd2,[480*640 3]));
     
-    numberofobjects=0;
+    
     
    
     %Create Point clouds for objects detected by camera 1
@@ -205,8 +206,7 @@ for i=1:length(d)
     
     %Creat Point clouds for objects detected by camera 2
     for lb=1:size(uv2,1)-1
-        %Increment the number o objects detected
-        numberofobjects=numberofobjects+1;
+        
         
         %Calculate mask per object
         mask=(abs(lb2)==lb);
