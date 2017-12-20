@@ -25,7 +25,7 @@ function [error xxx transform] = ransac1(x,y)
 
 minPtNum = 4;
 iterNum = 500;
-thInlrRatio = 0.4;
+thInlrRatio = 0.05;
 thDist = 0.015;
 ptNum = size(x,1);
 thInlr = round(thInlrRatio*ptNum);

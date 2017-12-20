@@ -6,15 +6,16 @@ load('cameraparametersAsus.mat');
 mode=1;
 shouldPlot = true;
 
-huemargin=0.05;
-distancemargin=0.25;
+huemargin=0.1;
+distancemargin=0.1;
 
-detected=struct('xlimits',{},'ylimits',{},'zlimits',{},'huecam1',{},'huecam2',{});
+detected=struct('xlimits',{},'x_st',{},'ylimits',{},'y_st',{},'zlimits',{},'z_st',{},'huecam1',{},'huecam2',{},'frames1',{},'frames2',{},'total_frames',{});
 
+objects=struct('X',{},'Y',{},'Z',{},'frames_tracked',{});
 
 
 % READ IMAGES and GENERATE POINT CLOUDS
-imagefolder='/Volumes/Samsung_T5/PIV/Projecto/data_rgb 3/';
+imagefolder='/Volumes/Samsung_T5/PIV/Projecto/data_rgb 4/';
 [imgbrgb,imgbdepth]=calculatebackground(imagefolder);
 dep1=imgbdepth(:,:,1);
 im1=imgbrgb(:,:,1);
@@ -120,9 +121,16 @@ for i=1:length(d)
     backremoved2=backremoved2+G2;
     
     %Morphological filtering on binary mask
-    backremoved1=imopen(backremoved1,strel('disk',10));
-    backremoved2=imopen(backremoved2,strel('disk',10));
-    
+    backremoved1=imopen(backremoved1,strel('disk',15));
+    backremoved2=imopen(backremoved2,strel('disk',15));
+    backremoved1=imopen(backremoved1,strel('square',20));
+    backremoved2=imopen(backremoved2,strel('square',20));
+    backremoved1=imclose(backremoved1,strel('square',25));
+    backremoved2=imclose(backremoved2,strel('square',25));
+    backremoved1=imdilate(backremoved1,strel('square',5));
+    backremoved2=imdilate(backremoved2,strel('square',5));
+    backremoved1=imopen(backremoved1,strel('square',40));
+    backremoved2=imopen(backremoved2,strel('square',40));
     
     %Apply labels to all the areas
     lb1=bwlabel(backremoved1);
@@ -165,14 +173,14 @@ for i=1:length(d)
         temprgb(:,:,1)=rgbd1(:,:,1);
         temprgb(:,:,2)=rgbd1(:,:,2);
         temprgb(:,:,3)=rgbd1(:,:,3);
-        %figure(1);hold off;
-        %imagesc(temprgb);
+        figure(1);hold off;
+        imagesc(temprgb);
         temphsv=rgb2hsv(temprgb);
         %figure(2);hold off;
         %imagesc(temphsv);
         hue=temphsv(:,:,1);
         hue=hue(hue~=0);
-        objects1h(lb)=median(hue(:));
+        objects1h(lb)=mean(hue(:));
         
         %pause;
         
@@ -231,14 +239,14 @@ for i=1:length(d)
         temprgb(:,:,1)=rgbd2(:,:,1);
         temprgb(:,:,2)=rgbd2(:,:,2);
         temprgb(:,:,3)=rgbd2(:,:,3);
-        %figure(1);hold off;
-        %imagesc(temprgb);
+        figure(2);hold off;
+        imagesc(temprgb);
         temphsv=rgb2hsv(temprgb);
         %figure(2);hold off;
         %imagesc(temphsv);
         hue=temphsv(:,:,1);
         hue=hue(hue~=0);
-        objects2h(lb)=median(hue(:));
+        objects2h(lb)=mean(hue(:));
         
         
         
@@ -296,9 +304,9 @@ for i=1:length(d)
             %check if the regions intecept
             if range_intersection(detected(counter).xlimits,objects1x(:,j),distancemargin)==1 && range_intersection(detected(counter).ylimits,objects1y(:,j),distancemargin)==1 && range_intersection(detected(counter).zlimits,objects1z(:,j),distancemargin)==1
                 
-                disp('range');
+                %disp('range');
                 if ((detected(counter).huecam1-huemargin<objects1h(:,j) && detected(counter).huecam1+huemargin>objects1h(:,j)) || detected(counter).huecam1==0)
-                    disp('color')
+                    %disp('color');
                     flag=1;
                     break;
                 end
@@ -315,6 +323,25 @@ for i=1:length(d)
             detected(counter).zlimits=objects1z(:,j);
             detected(counter).huecam1=objects1h(:,j);
             
+            detected(counter).x_st(length(detected(counter).total_frames)+1,1)=detected(counter).xlimits(1);
+            detected(counter).x_st(length(detected(counter).total_frames)+1,2)=detected(counter).xlimits(2);
+            detected(counter).y_st(length(detected(counter).total_frames)+1,1)=detected(counter).ylimits(1);
+            detected(counter).y_st(length(detected(counter).total_frames)+1,2)=detected(counter).ylimits(2);
+            detected(counter).z_st(length(detected(counter).total_frames)+1,1)=detected(counter).zlimits(1);
+            detected(counter).z_st(length(detected(counter).total_frames)+1,2)=detected(counter).zlimits(2);
+            
+            if isempty(detected(counter).frames1)==1
+                detected(counter).frames1=i;
+            end
+            if detected(counter).frames1(:,length(detected(counter).frames1))~=i;
+                detected(counter).frames1(:,length(detected(counter).frames1)+1)=i;
+            end
+            %criar o n? total de frames
+            if detected(counter).total_frames(:,length(detected(counter).total_frames))~=i;
+                detected(counter).total_frames(:,length(detected(counter).total_frames)+1)=i;
+            end
+            
+            
         elseif flag==0
             numberofobjects=numberofobjects+1;
             detected(numberofobjects).xlimits=objects1x(:,j);
@@ -322,6 +349,20 @@ for i=1:length(d)
             detected(numberofobjects).zlimits=objects1z(:,j);
             detected(numberofobjects).huecam1=objects1h(:,j);
             detected(numberofobjects).huecam2=0;
+            
+            detected(numberofobjects).x_st(1,:)=detected(numberofobjects).xlimits;
+            detected(numberofobjects).y_st(1,:)=detected(numberofobjects).ylimits;
+            detected(numberofobjects).z_st(1,:)=detected(numberofobjects).zlimits;
+            
+            if isempty(detected(numberofobjects).frames1)==1
+                detected(numberofobjects).frames1=i;
+                
+            end
+            %criar o n? total de frames
+            if isempty(detected(numberofobjects).total_frames)==1
+                detected(numberofobjects).total_frames=i;
+            end
+            
         end
         %Just to stop the script
         %erro
@@ -333,9 +374,9 @@ for i=1:length(d)
         for counter=1:size(detected,2)
             %check if the regions intecept
             if range_intersection(detected(counter).xlimits,objects2x(:,j),distancemargin)==1 && range_intersection(detected(counter).ylimits,objects2y(:,j),distancemargin)==1 && range_intersection(detected(counter).zlimits,objects2z(:,j),distancemargin)==1
-                disp('range');
+                %disp('range');
                 if ((detected(counter).huecam2-huemargin<objects2h(:,j) && detected(counter).huecam2+huemargin>objects2h(:,j)) || detected(counter).huecam2==0)
-                    disp('color')
+                    %disp('color');
                     flag=1;
                     break;
                 end
@@ -355,6 +396,25 @@ for i=1:length(d)
             detected(counter).zlimits(2)=max(objects2z(2,j),detected(counter).zlimits(2));
             detected(counter).huecam2=objects2h(:,j);
             
+            detected(counter).x_st(length(detected(counter).total_frames)+1,1)=detected(counter).xlimits(1);
+            detected(counter).x_st(length(detected(counter).total_frames)+1,2)=detected(counter).xlimits(2);
+            detected(counter).y_st(length(detected(counter).total_frames)+1,1)=detected(counter).ylimits(1);
+            detected(counter).y_st(length(detected(counter).total_frames)+1,2)=detected(counter).ylimits(2);
+            detected(counter).z_st(length(detected(counter).total_frames)+1,1)=detected(counter).zlimits(1);
+            detected(counter).z_st(length(detected(counter).total_frames)+1,2)=detected(counter).zlimits(2);
+            
+            if isempty(detected(counter).frames2)==1
+                detected(counter).frames2=i;
+            end
+            if detected(counter).frames2(:,length(detected(counter).frames2))~=i
+                detected(counter).frames2(:,length(detected(counter).frames2)+1)=i;
+                
+            end
+             %criar o n? total de frames
+            if detected(counter).total_frames(:,length(detected(counter).total_frames))~=i;
+                detected(counter).total_frames(:,length(detected(counter).total_frames)+1)=i;
+            end
+            
         elseif flag==0
             numberofobjects=numberofobjects+1;
             detected(numberofobjects).xlimits=objects2x(:,j);
@@ -362,15 +422,28 @@ for i=1:length(d)
             detected(numberofobjects).zlimits=objects2z(:,j);
             detected(numberofobjects).huecam1=0;
             detected(numberofobjects).huecam2=objects2h(:,j);
+            
+            detected(numberofobjects).x_st(1,:)=detected(numberofobjects).xlimits;
+            detected(numberofobjects).y_st(1,:)=detected(numberofobjects).ylimits;
+            detected(numberofobjects).z_st(1,:)=detected(numberofobjects).zlimits;
+            
+            if isempty(detected(numberofobjects).frames2)==1
+                detected(numberofobjects).frames2=i;
+            end
+            %criar o n? de frames total
+            if isempty(detected(numberofobjects).total_frames)==1
+                detected(numberofobjects).total_frames=i;
+                
+            end
         end
         
         
     end
     
-    for counter=1:size(detected,2)
+    %for counter=1:size(detected,2)
         %Insert code to draw the boxes one per object
         
-    end
+    %end
     
     %Display Cut RGB images
     %figure(1);hold off;
@@ -383,4 +456,13 @@ for i=1:length(d)
     
     
 
+end
+%%
+%construir a estrutura de output
+%to confirm the structure, check the model from prof JPClab1.mat
+for i=1:numberofobjects
+   objects(i).X=[detected(i).x_st(:,2) detected(i).x_st(:,2) detected(i).x_st(:,2) detected(i).x_st(:,2) detected(i).x_st(:,1) detected(i).x_st(:,1) detected(i).x_st(:,1) detected(i).x_st(:,1)];
+   objects(i).Y=[detected(i).y_st(:,2) detected(i).y_st(:,1) detected(i).y_st(:,2) detected(i).y_st(:,1) detected(i).y_st(:,2) detected(i).y_st(:,1) detected(i).y_st(:,2) detected(i).y_st(:,1)]; 
+   objects(i).Z=[detected(i).z_st(:,1) detected(i).z_st(:,1) detected(i).z_st(:,2) detected(i).z_st(:,2) detected(i).z_st(:,1) detected(i).z_st(:,1) detected(i).z_st(:,2) detected(i).z_st(:,2)]; 
+   objects(i).frames_tracked = detected(i).total_frames;
 end
