@@ -9,7 +9,7 @@ shouldPlot = true;
 huemargin=0.1;
 distancemargin=0.1;
 
-detected=struct('xlimits',{},'x_st',{},'ylimits',{},'y_st',{},'zlimits',{},'z_st',{},'huecam1',{},'huecam2',{},'frames1',{},'frames2',{},'total_frames',{});
+detected=struct('xlimits',{},'x_st',{},'ylimits',{},'y_st',{},'zlimits',{},'z_st',{},'huecam1',{},'huecam2',{},'cam1view',{},'cam2view',{},'frames1',{},'frames2',{},'total_frames',{});
 
 objects=struct('X',{},'Y',{},'Z',{},'frames_tracked',{});
 
@@ -92,7 +92,7 @@ numberofobjects=0;
 
 for i=1:length(d)
     %Go throw all the images
-    clear( 'objects1x', 'objects1y', 'objects1z','objects1h', 'objects2x', 'objects2y', 'objects2z','objects2h');
+    clear( 'objects1x', 'objects1y', 'objects1z','objects1h', 'objects2x', 'objects2y', 'objects2z', 'cam1', 'cam2','objects2h');
     clear( 'lb1', 'uv1', 'lb2', 'uv2', 'objectspointcloud');
     
     %Load RGB image
@@ -176,6 +176,7 @@ for i=1:length(d)
         figure(1);hold off;
         imagesc(temprgb);
         temphsv=rgb2hsv(temprgb);
+        
         %figure(2);hold off;
         %imagesc(temphsv);
         hue=temphsv(:,:,1);
@@ -209,6 +210,7 @@ for i=1:length(d)
         aux=pc1.Location(:,3);
         objects1z(1,lb)=min(aux);
         objects1z(2,lb)=max(aux);
+        cam1(:,:,lb)=rgb2gray(temprgb);
         
         %Display Cut RGB images   
         %imagesc(rgbd1);
@@ -274,6 +276,7 @@ for i=1:length(d)
         aux=pc2.Location(:,3);
         objects2z(1,lb)=min(aux);
         objects2z(2,lb)=max(aux);
+        cam2(:,:,lb)=rgb2gray(temprgb);
         
         %showPointCloud(pc2)
         
@@ -322,6 +325,7 @@ for i=1:length(d)
             detected(counter).ylimits=objects1y(:,j);
             detected(counter).zlimits=objects1z(:,j);
             detected(counter).huecam1=objects1h(:,j);
+            detected(counter).cam1view=cam1(:,:,j);
             
             detected(counter).x_st(length(detected(counter).total_frames)+1,1)=detected(counter).xlimits(1);
             detected(counter).x_st(length(detected(counter).total_frames)+1,2)=detected(counter).xlimits(2);
@@ -349,6 +353,7 @@ for i=1:length(d)
             detected(numberofobjects).zlimits=objects1z(:,j);
             detected(numberofobjects).huecam1=objects1h(:,j);
             detected(numberofobjects).huecam2=0;
+            detected(numberofobjects).cam1view=cam1(:,:,j);
             
             detected(numberofobjects).x_st(1,:)=detected(numberofobjects).xlimits;
             detected(numberofobjects).y_st(1,:)=detected(numberofobjects).ylimits;
@@ -395,6 +400,7 @@ for i=1:length(d)
             detected(counter).zlimits(1)=min(objects2z(1,j),detected(counter).zlimits(1));
             detected(counter).zlimits(2)=max(objects2z(2,j),detected(counter).zlimits(2));
             detected(counter).huecam2=objects2h(:,j);
+            detected(counter).cam2view=cam2(:,:,j);
             
             detected(counter).x_st(length(detected(counter).total_frames)+1,1)=detected(counter).xlimits(1);
             detected(counter).x_st(length(detected(counter).total_frames)+1,2)=detected(counter).xlimits(2);
@@ -422,6 +428,7 @@ for i=1:length(d)
             detected(numberofobjects).zlimits=objects2z(:,j);
             detected(numberofobjects).huecam1=0;
             detected(numberofobjects).huecam2=objects2h(:,j);
+            detected(numberofobjects).cam2view=cam2(:,:,j);
             
             detected(numberofobjects).x_st(1,:)=detected(numberofobjects).xlimits;
             detected(numberofobjects).y_st(1,:)=detected(numberofobjects).ylimits;
